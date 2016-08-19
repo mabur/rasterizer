@@ -70,17 +70,3 @@ void loadModel(const char* filepath, Vectors4d& positions, Triangles& triangles)
     }
 }
 
-void projectPoints(
-    const Matrix4d& image_from_world,
-    const Vectors4d& vertices_world,
-    Vectors4d& vertices_image)
-{
-    const auto num_vertices = vertices_world.size();
-
-    for (size_t i = 0; i < num_vertices; ++i)
-    {
-        auto vertex_image = Vector4d{ image_from_world * vertices_world[i] };
-        vertex_image /= vertex_image(3);
-        vertices_image[i] = vertex_image;
-    }
-}

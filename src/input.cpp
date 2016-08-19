@@ -3,6 +3,9 @@
 #include "input.hpp"
 #include "vector_space.hpp"
 
+const auto velocity = 0.5;
+const auto angular_velocity = 0.2 * 2.0 * 3.14 / 360.0;
+
 bool isLeftMouseButtonDown(Uint32 mouse_state)
 {
     return static_cast<bool>(mouse_state & SDL_BUTTON(SDL_BUTTON_LEFT));
@@ -22,8 +25,6 @@ CameraCoordinates handleInput(CameraCoordinates camera_coordinates)
 
     const auto mouse = SDL_GetRelativeMouseState(&mouse_x, &mouse_y);
     const auto keyboard = SDL_GetKeyboardState(NULL);
-    const auto velocity = 0.05;
-    const auto angular_velocity = 0.2 * 2.0 * 3.14 / 360.0;
 
     camera_coordinates.yaw   += mouse_x * angular_velocity;
     camera_coordinates.pitch -= mouse_y * angular_velocity;

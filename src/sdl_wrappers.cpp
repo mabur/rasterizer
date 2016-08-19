@@ -2,10 +2,10 @@
 
 #include "sdl_wrappers.hpp"
 
-#include <algorithm>
 #include <iostream>
 #include <vector>
 
+#include "algorithm.hpp"
 #include "SDL.h"
 
 void printError(const char* context)
@@ -87,7 +87,7 @@ Sdl::~Sdl()
 void Sdl::clear()
 {
     using namespace std;
-    fill(pixels.begin(), pixels.end(), 0);
+    fill(pixels, 0);
 }
 
 int Sdl::pitch() const

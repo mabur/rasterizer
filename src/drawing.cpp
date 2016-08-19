@@ -1,3 +1,8 @@
+#include <algorithm>
+
+#include <Eigen/Core>
+
+#include "algorithm.hpp"
 #include "drawing.hpp"
 
 double barycentric(
@@ -7,33 +12,58 @@ double barycentric(
          - (vertex_left(1) - vertex_right(1)) * (point(0) - vertex_right(0));
 }
 
-double min3(double a, double b, double c)
+void vertexShader(Vertices& vertices, const Environment& environment)
 {
-    return std::min(a, std::min(b, c));
+	const auto num_vertices = vertices.size();
+	const auto image_from_world = environment.image_from_world;
+	for (size_t i = 0; i < num_vertices; ++i)
+	{
+		const auto position_world = vertices.positions_world[i];
+		const auto position_image = Vector4d{image_from_world * position_world};
+		vertices.positions_image[i] = position_image / position_image(3);
+	}
 }
 
-double max3(double a, double b, double c)
+Uint32 packColorArgb(Uint32 a, Uint32 r, Uint32 g, Uint32 b)
 {
-    return std::max(a, std::max(b, c));
+	return (a << 24) | (r << 16) | (g << 8) | (b << 0);
 }
 
-using Vertex = double;
-using Pixel = Uint32;
-Pixel pixel_shader(const Vertex& vertex, Pixel pixel)
+void pixelShader(const Vertex& vertex, Pixels& pixels, size_t index)
 {
-    //*pixel = pixel_shader(vertex, *pixel);
-    return 0xFF00FF00;
+	using namespace vertex_index;
+	
+	if (vertex(BARY0) < 0.0 || 1.0 < vertex(BARY0)) return;
+	if (vertex(BARY1) < 0.0 || 1.0 < vertex(BARY1)) return;
+	if (vertex(BARY2) < 0.0 || 1.0 < vertex(BARY2)) return;	
+
+	const double disparity = vertex(DISPARITY);
+	// TODO: try if defered rendering is faster.
+	if (disparity > pixels.disparities[index])
+	{
+		//const double illumination = 0.5 * vertex(ILLUMINATION);
+		const double illumination = 500 * vertex(DISPARITY);
+		const Uint32 c = static_cast<Uint32>(clamp(illumination, 0.0, 255.0));
+		pixels.colors[index] = packColorArgb(255, c, c, c);
+		pixels.disparities[index] = disparity;
+	}
 }
 
-void renderTriangleTemplate(Sdl& sdl,
+bool isBehindCamera(const Vector4d& v0, const Vector4d& v1, const Vector4d& v2)
+{
+	return v0(2) <= 0 || v1(2) <= 0 || v2(2) <= 0;
+}
+
+void renderTriangleTemplate(
+	Pixels& pixels,
     const Vector4d& v0, const Vector4d& v1, const Vector4d& v2,
     const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2)
 {
-    if (v0(2) <= 0 || v1(2) <= 0 || v2(2) <= 0) return;
+	if (isBehindCamera(v0, v1, v2)) return;
 
-    const auto width    = static_cast<size_t>(sdl.width);
-    const auto width_d  = static_cast<double>(sdl.width);
-    const auto height_d = static_cast<double>(sdl.height);
+    const auto width    = pixels.width;
+    const auto width_d  = static_cast<double>(pixels.width);
+    const auto height_d = static_cast<double>(pixels.height);
 
     auto x_min = min3(v0.x(), v1.x(), v2.x());
     auto x_max = max3(v0.x(), v1.x(), v2.x());
@@ -49,27 +79,26 @@ void renderTriangleTemplate(Sdl& sdl,
     y_min = clamp(floor(y_min), 0.0, height_d - 1.0);
     y_max = clamp( ceil(y_max), 0.0, height_d - 1.0);
 
-    // TODO: ceil and floor?
     const auto x_min_i = static_cast<size_t>(x_min);
     const auto x_max_i = static_cast<size_t>(x_max);
     const auto y_min_i = static_cast<size_t>(y_min);
     const auto y_max_i = static_cast<size_t>(y_max);
     
-    const auto p  = Vector4d(x_min, y_min, 0.0, 0.0);
-    const auto dx = Vector4d(1.0, 0.0, 0.0, 0.0);
-    const auto dy = Vector4d(0.0, 1.0, 0.0, 0.0);
+    const auto p       = Vector4d(x_min      , y_min      , 0.0, 0.0);
+	const auto p_right = Vector4d(x_min + 1.0, y_min      , 0.0, 0.0);
+	const auto p_down  = Vector4d(x_min      , y_min + 1.0, 0.0, 0.0);
 
     const auto w0_row = barycentric(v1, v2, p);
     const auto w1_row = barycentric(v2, v0, p);
     const auto w2_row = barycentric(v0, v1, p);
 
-    const auto w0_dx = barycentric(v1, v2, p + dx) - barycentric(v1, v2, p);
-    const auto w1_dx = barycentric(v2, v0, p + dx) - barycentric(v2, v0, p);
-    const auto w2_dx = barycentric(v0, v1, p + dx) - barycentric(v0, v1, p);
+    const auto w0_dx = barycentric(v1, v2, p_right) - barycentric(v1, v2, p);
+    const auto w1_dx = barycentric(v2, v0, p_right) - barycentric(v2, v0, p);
+    const auto w2_dx = barycentric(v0, v1, p_right) - barycentric(v0, v1, p);
 
-    const auto w0_dy = barycentric(v1, v2, p + dy) - barycentric(v1, v2, p);
-    const auto w1_dy = barycentric(v2, v0, p + dy) - barycentric(v2, v0, p);
-    const auto w2_dy = barycentric(v0, v1, p + dy) - barycentric(v0, v1, p);
+    const auto w0_dy = barycentric(v1, v2, p_down) - barycentric(v1, v2, p);
+    const auto w1_dy = barycentric(v2, v0, p_down) - barycentric(v2, v0, p);
+    const auto w2_dy = barycentric(v0, v1, p_down) - barycentric(v0, v1, p);
 
     const auto c = 1.0 / barycentric(v0, v1, v2);
 
@@ -79,53 +108,53 @@ void renderTriangleTemplate(Sdl& sdl,
     const Vertex vertex_dx  = c * (w0_dx  * vertex0 + w1_dx  * vertex1 + w2_dx  * vertex2);
     const Vertex vertex_dy  = c * (w0_dy  * vertex0 + w1_dy  * vertex1 + w2_dy  * vertex2);
 
-    auto pixel_current_row = sdl.pixels.data() + y_min_i * width + x_min_i;
+    auto index_current_row = y_min_i * width + x_min_i;
     auto vertex_current_row = vertex_row;
 
     for (auto y = y_min_i; y <= y_max_i; ++y)
     {
         auto vertex = vertex_current_row;
-        auto pixel  = pixel_current_row;
+        auto index  = index_current_row;
 
         for (auto x = x_min_i; x <= x_max_i; ++x)
         {
-            *pixel = pixel_shader(vertex, *pixel);
+            pixelShader(vertex, pixels, index);
 
             vertex += vertex_dx;
-            ++pixel;
+            ++index;
         }
 
         vertex_current_row += vertex_dy;
-        pixel_current_row += width;
+        index_current_row += width;
     }
 }
 
-void drawPoint(Sdl& sdl, const Vector4d& vertex_image)
+void drawPoint(Pixels& pixels, const Vector4d& vertex_image)
 {
     const auto x = static_cast<int>(vertex_image.x());
     const auto y = static_cast<int>(vertex_image.y());
     const auto disparity = vertex_image.z();
 
-    if (0 <= x && x < sdl.width && 0 <= y && y < sdl.height && disparity > 0.0)
+    if (0 <= x && x < pixels.width && 0 <= y && y < pixels.height && disparity > 0.0)
     {
-        sdl.pixels[y * sdl.width + x] = 0xFFFF00FF;
+		pixels.colors[y * pixels.width + x] = 0xFFFF00FF;
     }
 }
 
-void drawPoints(Sdl& sdl, const Vectors4d& vertices_image)
+void drawPoints(Pixels& pixels, const Vectors4d& vertices_image)
 {
     for (const auto& vertex_image : vertices_image)
     {
-        drawPoint(sdl, vertex_image);
+        drawPoint(pixels, vertex_image);
     }
 }
 
-void drawTriangles(
-    Sdl& sdl,
-    const Vectors4d& vertices_image,
-    const Triangles& triangles)
+void drawTriangles(Pixels& pixels, const Vertices& vertices, const Triangles& triangles)
 {
-    const auto num_triangles = triangles.indices0.size();
+	const auto num_triangles = triangles.size();
+
+	fill(pixels.disparities, 0.0);
+	fill(pixels.colors, 0);
 
     for (size_t i = 0; i < num_triangles; ++i)
     {
@@ -133,33 +162,47 @@ void drawTriangles(
         const auto i1 = triangles.indices1[i];
         const auto i2 = triangles.indices2[i];
 
-        const auto& v0 = vertices_image[i0];
-        const auto& v1 = vertices_image[i1];
-        const auto& v2 = vertices_image[i2];
+        const auto& v0 = vertices.positions_image[i0];
+        const auto& v1 = vertices.positions_image[i1];
+        const auto& v2 = vertices.positions_image[i2];
 
-        double vertex0 = 0;
-        double vertex1 = 1;
-        double vertex2 = 2;
+        auto vertex0 = Vertex();
+		auto vertex1 = Vertex();
+		auto vertex2 = Vertex();
 
-        renderTriangleTemplate(sdl, v0, v1, v2, vertex0, vertex1, vertex2);
+		using namespace vertex_index;
+
+		vertex0(BARY0) = 1.0;
+		vertex0(BARY1) = 0.0;
+		vertex0(BARY2) = 0.0;
+		vertex0(DISPARITY) = v0(2);
+
+		vertex1(BARY0) = 0.0;
+		vertex1(BARY1) = 1.0;
+		vertex1(BARY2) = 0.0;
+		vertex1(DISPARITY) = v1(2);
+
+		vertex2(BARY0) = 0.0;
+		vertex2(BARY1) = 0.0;
+		vertex2(BARY2) = 1.0;
+		vertex2(DISPARITY) = v2(2);
+
+        renderTriangleTemplate(pixels, v0, v1, v2, vertex0, vertex1, vertex2);
     }
-
+	/*
     for (size_t i = 0; i < num_triangles; ++i)
     {
         const auto i0 = triangles.indices0[i];
         const auto i1 = triangles.indices1[i];
         const auto i2 = triangles.indices2[i];
 
-        const auto& v0 = vertices_image[i0];
-        const auto& v1 = vertices_image[i1];
-        const auto& v2 = vertices_image[i2];
+        const auto& v0 = vertices.positions_image[i0];
+        const auto& v1 = vertices.positions_image[i1];
+        const auto& v2 = vertices.positions_image[i2];
 
-        double vertex0 = 0;
-        double vertex1 = 1;
-        double vertex2 = 2;
-
-        drawPoint(sdl, vertices_image[i0]);
-        drawPoint(sdl, vertices_image[i1]);
-        drawPoint(sdl, vertices_image[i2]);
+        drawPoint(pixels, vertices.positions_image[i0]);
+        drawPoint(pixels, vertices.positions_image[i1]);
+        drawPoint(pixels, vertices.positions_image[i2]);
     }
+	*/
 }

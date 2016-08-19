@@ -1,4 +1,5 @@
 
+#include "algorithm.hpp"
 #include "camera.hpp"
 #include "drawing.hpp"
 #include "input.hpp"
@@ -9,29 +10,33 @@
 int main(int, char**)
 {
     const auto window_title = "Rasterizer";
-    const auto width = 800;
-    const auto height = 450;
-    const auto image_from_camera = imageFromCamera(width, height);
-    const auto filepath = "F:/mabur/Programmering/C++/rasterizer/models/sibenik/sibenik.obj";
+	const auto width = 640;
+	const auto height = 360;
+    const auto filepath = "../../models/sibenik/sibenik.obj";
 
     auto vertices_world = Vectors4d{};
     auto triangles = Triangles{};
     loadModel(filepath, vertices_world, triangles);
-    auto vertices_image = vertices_world;
+	const auto num_vertices = vertices_world.size();
+	auto vertices = Vertices(num_vertices);
+	vertices.positions_world = vertices_world;
 
-    auto sdl = Sdl(window_title, width, height);
+	const auto image_from_camera = imageFromCamera(width, height);
     auto camera_coordinates = CameraCoordinates{};
+	auto environment = Environment{};
+	auto buffers = Pixels(width, height);
+	auto sdl = Sdl(window_title, width, height);
 
     while (noQuitMessage())
     {
         camera_coordinates = handleInput(camera_coordinates);
         const auto camera_from_world = cameraFromWorld(camera_coordinates);
-        const auto image_from_world = Matrix4d{image_from_camera * camera_from_world};
-        projectPoints(image_from_world, vertices_world, vertices_image);
+		environment.image_from_world = image_from_camera * camera_from_world;
 
+		vertexShader(vertices, environment);
         sdl.clear();
-        //drawPoints(sdl, vertices_image);
-        drawTriangles(sdl, vertices_image, triangles);
+        drawTriangles(buffers, vertices, triangles);
+		copy(buffers.colors, sdl.pixels);
         sdl.update();
     }
     return 0;
