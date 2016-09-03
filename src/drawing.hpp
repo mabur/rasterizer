@@ -44,3 +44,4 @@ void vertexShader(Vertices& vertices, const Environment& environment);
 void drawPoint(Pixels& pixels, const Vector4d& vertex_image);
 void drawPoints(Pixels& pixels, const Vectors4d& vertices_image);
 void drawTriangles(Pixels& pixels, const Vertices& vertices, const Triangles& triangles);
+bool isBehindCamera(const Vector4d& v0, const Vector4d& v1, const Vector4d& v2);
