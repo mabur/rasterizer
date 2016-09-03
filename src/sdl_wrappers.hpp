@@ -15,8 +15,7 @@ public:
     ~Sdl();
     void clear();
     void update();
-	//void setPixels()
-    std::vector<Uint32> pixels;
+	void setPixels(const Uint32* pixels_begin);
 private:
 	int pitch() const;
 	int width;
@@ -24,4 +23,5 @@ private:
 	SDL_Window* window;
 	SDL_Renderer* renderer;
 	SDL_Texture* texture;
+	std::vector<Uint32> pixels;
 };

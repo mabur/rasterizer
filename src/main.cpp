@@ -34,9 +34,10 @@ int main(int, char**)
 		environment.image_from_world = image_from_camera * camera_from_world;
 
 		vertexShader(vertices, environment);
+		drawTriangles(buffers, vertices, triangles);
+		// Merge these to one?
         sdl.clear();
-        drawTriangles(buffers, vertices, triangles);
-		copy(buffers.colors, sdl.pixels);
+		sdl.setPixels(buffers.colors.data());
         sdl.update();
     }
     return 0;

@@ -2,6 +2,7 @@
 
 #include "sdl_wrappers.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -101,4 +102,9 @@ void Sdl::update()
     SDL_RenderClear(renderer); // is this needed?
     SDL_RenderCopy(renderer, texture, nullptr, nullptr);
     SDL_RenderPresent(renderer);
+}
+
+void Sdl::setPixels(const Uint32* pixels_begin)
+{
+	std::copy(pixels_begin, pixels_begin + pixels.size(), pixels.begin());
 }
