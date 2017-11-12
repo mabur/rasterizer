@@ -29,7 +29,22 @@ Vectors4d makeSphere(int num_points)
     return vertices_world;
 }
 
-void loadModel(const char* filepath, Vectors4d& positions, Triangles& triangles)
+std::string getDirectoryPath(const std::string filepath)
+{
+    return filepath.substr(0, filepath.find_last_of("/\\") + 1);
+}
+
+std::string stripFileExtension(const std::string filepath)
+{
+    return filepath.substr(0, filepath.find_last_of("."));
+}
+
+void loadModel(
+    const std::string& filepath,
+    Vectors4d& positions_world,
+    Vectors2d& positions_texture,
+    Triangles& triangles,
+    Textures& textures)
 {
     using namespace std;
     vector<tinyobj::shape_t> shapes;
@@ -38,7 +53,9 @@ void loadModel(const char* filepath, Vectors4d& positions, Triangles& triangles)
 
     cout << "Loading model..." << endl;
 
-    if (!tinyobj::LoadObj(shapes, materials, error_message, filepath))
+    const auto dirpath = getDirectoryPath(filepath);
+
+    if (!tinyobj::LoadObj(shapes, materials, error_message, filepath.c_str(), dirpath.c_str()))
         cerr << error_message << endl;
 
     cout << "# of shapes    : " << shapes.size() << endl;
@@ -46,10 +63,13 @@ void loadModel(const char* filepath, Vectors4d& positions, Triangles& triangles)
 
     const auto& mesh = shapes.front().mesh;
     assert(mesh.positions.size() % 3 == 0);
+    assert(mesh.texcoords.size() % 2 == 0);
+    assert(mesh.positions.size() / 3 == mesh.texcoords.size() / 2);
 
     const auto num_positions = mesh.positions.size() / 3;
 
-    positions = Vectors4d(num_positions);
+    positions_world   = Vectors4d(num_positions);
+    positions_texture = Vectors2d(num_positions);
 
     for (size_t i = 0; i < num_positions; ++i)
     {
@@ -57,7 +77,14 @@ void loadModel(const char* filepath, Vectors4d& positions, Triangles& triangles)
         auto y = double{ mesh.positions[3 * i + 1] };
         auto z = double{ mesh.positions[3 * i + 2] };
         auto w = 1.0;
-        positions[i] = Vector4d{ x, y, z, w };
+        positions_world[i] = Vector4d{ x, y, z, w };
+    }
+
+    for (size_t i = 0; i < num_positions; ++i)
+    {
+        auto x = double{ mesh.texcoords[2 * i + 0] };
+        auto y = double{ mesh.texcoords[2 * i + 1] };
+        positions_texture[i] = Vector2d{ x, y };
     }
 
     const auto num_triangles = mesh.indices.size() / 3;
@@ -67,6 +94,19 @@ void loadModel(const char* filepath, Vectors4d& positions, Triangles& triangles)
         triangles.indices0.push_back(mesh.indices[3 * f + 0]);
         triangles.indices1.push_back(mesh.indices[3 * f + 1]);
         triangles.indices2.push_back(mesh.indices[3 * f + 2]);
+        triangles.texture_indices.push_back(mesh.material_ids[f]);
+    }
+
+    textures = Textures(materials.size());
+    for (size_t i = 0; i < textures.size(); ++i)
+    {
+        const auto filename_png = materials[i].ambient_texname;
+        if (filename_png.empty())
+            continue;
+        const auto filename = stripFileExtension(filename_png);
+        const auto filename_ppm = filename + ".ppm";
+        const auto filepath_ppm = dirpath + filename_ppm;
+        textures[i] = readTexture(filepath_ppm);
     }
 }
 
