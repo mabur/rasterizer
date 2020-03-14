@@ -11,8 +11,8 @@
 int main(int, char**)
 {
     const auto window_title = "Rasterizer";
-    const auto width = 1024;// 640;
-    const auto height = 768;// 360;
+    const auto width = 800;// 640;
+    const auto height = 600;// 360;
     //const auto filepath = "../../models/kapell_2017.obj";
     const auto filepath = "../../models/sibenik/sibenik.obj";
 
@@ -26,22 +26,18 @@ int main(int, char**)
 	vertices.positions_world = positions_world;
     vertices.positions_texture = positions_texture;
 
-	const auto image_from_camera = imageFromCamera(width, height);
-    auto camera_coordinates = CameraCoordinates{};
-	auto environment = Environment{};
+    const auto light = makeLight();
+    const auto intrinsics = makeCameraIntrinsics(width, height);
+    auto extrinsics = CameraExtrinsics{};
 	auto buffers = Pixels(width, height);
 	auto sdl = Sdl(window_title, width, height);
+    auto environment = Environment{ intrinsics, extrinsics, light };
 
     while (noQuitMessage())
-    {
-        camera_coordinates = handleInput(camera_coordinates);
-        const auto camera_from_world = cameraFromWorld(camera_coordinates);
-		environment.image_from_world = image_from_camera * camera_from_world;
-
+    {    
+        environment = handleInput(environment);
 		vertexShader(vertices, environment);
-		drawTriangles(buffers, vertices, triangles, textures);
-		// Merge these to one?
-        sdl.clear();
+		drawTriangles(buffers, vertices, triangles, textures, environment);
 		sdl.setPixels(buffers.colors.data());
         sdl.update();
     }

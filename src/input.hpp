@@ -1,5 +1,6 @@
 #pragma once
 
 #include "camera.hpp"
+#include "drawing.hpp"
 
-CameraCoordinates handleInput(CameraCoordinates camera_coordinates);
+Environment handleInput(Environment environment);

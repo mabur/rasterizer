@@ -16,8 +16,10 @@ bool isRightMouseButtonDown(Uint32 mouse_state)
     return static_cast<bool>(mouse_state & SDL_BUTTON(SDL_BUTTON_RIGHT));
 }
 
-CameraCoordinates handleInput(CameraCoordinates camera_coordinates)
+Environment handleInput(Environment environment)
 {
+    auto& camera_coordinates = environment.extrinsics;
+
     SDL_SetRelativeMouseMode(SDL_TRUE);
 
     auto mouse_x = 0;
@@ -56,6 +58,31 @@ CameraCoordinates handleInput(CameraCoordinates camera_coordinates)
     {
         velocity_camera(1) -= velocity;
     }
+    // Light:
+    if (keyboard[SDL_SCANCODE_L])
+    {
+        environment.light.position_world(0) += velocity;
+    }
+    if (keyboard[SDL_SCANCODE_J])
+    {
+        environment.light.position_world(0) -= velocity;
+    }
+    if (keyboard[SDL_SCANCODE_I])
+    {
+        environment.light.position_world(2) += velocity;
+    }
+    if (keyboard[SDL_SCANCODE_K])
+    {
+        environment.light.position_world(2) -= velocity;
+    }
+    if (keyboard[SDL_SCANCODE_U])
+    {
+        environment.light.position_world(1) += velocity;
+    }
+    if (keyboard[SDL_SCANCODE_O])
+    {
+        environment.light.position_world(1) -= velocity;
+    }
 
     const auto world_from_camera = worldFromCamera(camera_coordinates);
     const auto velocity_world = Vector4d{ world_from_camera * velocity_camera };
@@ -64,5 +91,5 @@ CameraCoordinates handleInput(CameraCoordinates camera_coordinates)
     camera_coordinates.y += velocity_world(1);
     camera_coordinates.z += velocity_world(2);
 
-    return camera_coordinates;
+    return environment;
 }

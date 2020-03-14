@@ -2,7 +2,7 @@
 
 #include "vector_space.hpp"
 
-struct CameraCoordinates
+struct CameraExtrinsics
 {
     double x;
     double y;
@@ -11,6 +11,18 @@ struct CameraCoordinates
     double pitch;
 };
 
-Matrix4d imageFromCamera(int width, int height);
-Matrix4d worldFromCamera(const CameraCoordinates& coordinates);
-Matrix4d cameraFromWorld(const CameraCoordinates& coordinates);
+struct CameraIntrinsics
+{
+    double fx;
+    double fy;
+    double cx;
+    double cy;
+    size_t width;
+    size_t height;
+};
+
+CameraIntrinsics makeCameraIntrinsics(size_t width, size_t height);
+
+Matrix4d imageFromCamera(const CameraIntrinsics& intrinsics);
+Matrix4d worldFromCamera(const CameraExtrinsics& coordinates);
+Matrix4d cameraFromWorld(const CameraExtrinsics& coordinates);

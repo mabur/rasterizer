@@ -2,7 +2,7 @@
 
 #include <Eigen/Geometry>
 
-Matrix4d worldFromCamera(const CameraCoordinates& coordinates)
+Matrix4d worldFromCamera(const CameraExtrinsics& coordinates)
 {
     auto world_from_camera = Matrix4d{Matrix4d::Identity()};
     world_from_camera.col(3) << coordinates.x, coordinates.y, coordinates.z, 1.0;
@@ -16,23 +16,30 @@ Matrix4d worldFromCamera(const CameraCoordinates& coordinates)
     return world_from_camera;
 }
 
-Matrix4d cameraFromWorld(const CameraCoordinates& coordinates)
+Matrix4d cameraFromWorld(const CameraExtrinsics& coordinates)
 {
     return worldFromCamera(coordinates).inverse();
 }
 
-Matrix4d imageFromCamera(int width, int height)
+Matrix4d imageFromCamera(const CameraIntrinsics& c)
 {
-    const auto fx = 0.5 * height;
-    const auto fy = 0.5 * height;
-    const auto cx = 0.5 * width;
-    const auto cy = 0.5 * height;
-
     auto image_from_camera = Matrix4d{};
     image_from_camera <<
-        fx, 0.0, cx, 0.0,
-        0.0, fy, cy, 0.0,
+        c.fx, 0.0, c.cx, 0.0,
+        0.0, c.fy, c.cy, 0.0,
         0.0, 0.0, 0.0, 1.0,
         0.0, 0.0, 1.0, 0.0;
     return image_from_camera;
+}
+
+CameraIntrinsics makeCameraIntrinsics(size_t width, size_t height)
+{
+    auto intrinsics = CameraIntrinsics{};
+    intrinsics.fx = 0.5 * height;
+    intrinsics.fy = 0.5 * height;
+    intrinsics.cx = 0.5 * width;
+    intrinsics.cy = 0.5 * height;
+    intrinsics.width = width;
+    intrinsics.height = height;
+    return intrinsics;
 }
