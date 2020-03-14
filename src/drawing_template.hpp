@@ -27,15 +27,22 @@ auto barycentric(
 		 - (vertex_left[1] - vertex_right[1]) * (point[0] - vertex_right[0]);
 }
 
-template<typename Pixels, typename PixelShader, typename Vector4, typename Vertex>
+template<typename Vector4, typename Vertex, typename Integer, typename PixelShader>
 void renderTriangleTemplate(
-	Pixels& pixels, PixelShader pixel_shader,
-	const Vector4& v0, const Vector4& v1, const Vector4& v2,
-	const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2)
+	const Vector4& v0,
+    const Vector4& v1,
+    const Vector4& v2,
+	const Vertex& vertex0,
+    const Vertex& vertex1,
+    const Vertex& vertex2,
+    Integer width,
+    Integer height,
+    PixelShader pixel_shader)
 {
-	const auto width    = pixels.width;
-	const auto width_d  = static_cast<double>(pixels.width);
-	const auto height_d = static_cast<double>(pixels.height);
+    using Scalar = decltype(v0[0]);
+
+	const auto width_d  = static_cast<Scalar>(width);
+	const auto height_d = static_cast<Scalar>(height);
 
 	auto x_min = min3(v0[0], v1[0], v2[0]);
 	auto x_max = max3(v0[0], v1[0], v2[0]);
@@ -50,10 +57,10 @@ void renderTriangleTemplate(
 	y_min = clamp(floor(y_min), 0.0, height_d - 1.0);
 	y_max = clamp( ceil(y_max), 0.0, height_d - 1.0);
 
-	const auto x_min_i = static_cast<size_t>(x_min);
-	const auto x_max_i = static_cast<size_t>(x_max);
-	const auto y_min_i = static_cast<size_t>(y_min);
-	const auto y_max_i = static_cast<size_t>(y_max);
+	const auto x_min_i = static_cast<Integer>(x_min);
+	const auto x_max_i = static_cast<Integer>(x_max);
+	const auto y_min_i = static_cast<Integer>(y_min);
+	const auto y_max_i = static_cast<Integer>(y_max);
 
 	const auto p       = Vector4{x_min,       y_min, 0.0, 0.0};
 	const auto p_right = Vector4{x_min + 1.0, y_min, 0.0, 0.0};
@@ -87,7 +94,7 @@ void renderTriangleTemplate(
 
 		for (auto x = x_min_i; x <= x_max_i; ++x)
 		{
-			pixel_shader(vertex, pixels, index);
+			pixel_shader(vertex, index);
 			vertex += vertex_dx;
 			++index;
 		}

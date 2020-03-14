@@ -72,8 +72,9 @@ struct PixelEnvironment
 
 struct PixelShader
 {
+    Pixels* pixels;
     PixelEnvironment pixel_environment;
-    void operator()(const Vertex& vertex, Pixels& pixels, size_t index) const
+    void operator()(const Vertex& vertex, size_t index) const
     {
         using namespace vertex_index;
 
@@ -83,11 +84,11 @@ struct PixelShader
 
         const double disparity = vertex(DISPARITY);
         // TODO: try if defered rendering is faster.
-        if (disparity <= pixels.disparities[index]) return;
+        if (disparity <= pixels->disparities[index]) return;
 
         const Uint32 c = clampColor(255 * 2 * disparity);
-        pixels.colors[index] = packColorArgb(255, c, c, c);
-        pixels.disparities[index] = disparity;
+        pixels->colors[index] = packColorArgb(255, c, c, c);
+        pixels->disparities[index] = disparity;
 
         if (pixel_environment.surface_texture->empty()) return;
 
@@ -106,7 +107,7 @@ struct PixelShader
         const auto red   = clampColor(light * color(RED));
         const auto green = clampColor(light * color(GREEN));
         const auto blue  = clampColor(light * color(BLUE));
-        pixels.colors[index] = packColorArgb(255, red, green, blue);
+        pixels->colors[index] = packColorArgb(255, red, green, blue);
     }
 };
 
@@ -205,11 +206,14 @@ void drawTriangles(Pixels& pixels, const Vertices& vertices,
         vertex2(Z) = p2(2) * v2(2);
 
         const auto texture_index = triangles.texture_indices[i];
+        pixel_shader.pixels = &pixels;
         pixel_shader.pixel_environment.surface_texture = &textures[texture_index];
         pixel_shader.pixel_environment.light_position_world = environment.light.position_world;
         pixel_shader.pixel_environment.light_power = environment.light.power;
 
         //renderTriangleTemplate(pixels, basicPixelShader, v0, v1, v2, vertex0, vertex1, vertex2);
-        renderTriangleTemplate(pixels, pixel_shader, v0, v1, v2, vertex0, vertex1, vertex2);
+        renderTriangleTemplate(
+            v0, v1, v2, vertex0, vertex1, vertex2,
+            pixels.width, pixels.height, pixel_shader);
     }
 }
