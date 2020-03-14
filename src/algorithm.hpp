@@ -3,18 +3,6 @@
 #include <algorithm>
 #include <cassert>
 
-template<typename T>
-T min3(T a, T b, T c)
-{
-	return std::min(a, std::min(b, c));
-}
-
-template<typename T>
-T max3(T a, T b, T c)
-{
-	return std::max(a, std::max(b, c));
-}
-
 template<typename Container, typename Value>
 void fill(Container& container, Value value)
 {

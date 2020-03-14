@@ -2,6 +2,7 @@
 
 #include "input.hpp"
 #include "vector_space.hpp"
+#include "drawing_template.hpp"
 
 const auto velocity = 0.5;
 const auto angular_velocity = 0.2 * 2.0 * 3.14 / 360.0;

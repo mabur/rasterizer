@@ -1,28 +1,46 @@
 #pragma once
+#include <algorithm>
 
-#include "vector_space.hpp"
-
-inline double barycentric(
-	const Vector4d& vertex_right, const Vector4d& vertex_left, const Vector4d& point)
+template<typename T>
+T min3(T a, T b, T c)
 {
-	return (vertex_left(0) - vertex_right(0)) * (point(1) - vertex_right(1))
-		 - (vertex_left(1) - vertex_right(1)) * (point(0) - vertex_right(0));
+    return std::min(a, std::min(b, c));
 }
 
-template<typename Pixels, typename PixelShader, typename Vertex>
+template<typename T>
+T max3(T a, T b, T c)
+{
+    return std::max(a, std::max(b, c));
+}
+
+template<typename T>
+T clamp(T x, T low, T high)
+{
+    return std::min(std::max(x, low), high);
+}
+
+template<typename Vector4>
+auto barycentric(
+	const Vector4& vertex_right, const Vector4& vertex_left, const Vector4& point)
+{
+	return (vertex_left[0] - vertex_right[0]) * (point[1] - vertex_right[1])
+		 - (vertex_left[1] - vertex_right[1]) * (point[0] - vertex_right[0]);
+}
+
+template<typename Pixels, typename PixelShader, typename Vector4, typename Vertex>
 void renderTriangleTemplate(
 	Pixels& pixels, PixelShader pixel_shader,
-	const Vector4d& v0, const Vector4d& v1, const Vector4d& v2,
+	const Vector4& v0, const Vector4& v1, const Vector4& v2,
 	const Vertex& vertex0, const Vertex& vertex1, const Vertex& vertex2)
 {
 	const auto width    = pixels.width;
 	const auto width_d  = static_cast<double>(pixels.width);
 	const auto height_d = static_cast<double>(pixels.height);
 
-	auto x_min = min3(v0.x(), v1.x(), v2.x());
-	auto x_max = max3(v0.x(), v1.x(), v2.x());
-	auto y_min = min3(v0.y(), v1.y(), v2.y());
-	auto y_max = max3(v0.y(), v1.y(), v2.y());
+	auto x_min = min3(v0[0], v1[0], v2[0]);
+	auto x_max = max3(v0[0], v1[0], v2[0]);
+	auto y_min = min3(v0[1], v1[1], v2[1]);
+	auto y_max = max3(v0[1], v1[1], v2[1]);
 
 	if (x_max < 0.0 || y_max < 0.0) return;
 	if (width_d - 1.0 < x_min || height_d - 1.0 < y_min) return;
@@ -37,9 +55,9 @@ void renderTriangleTemplate(
 	const auto y_min_i = static_cast<size_t>(y_min);
 	const auto y_max_i = static_cast<size_t>(y_max);
 
-	const auto p       = Vector4d(x_min,       y_min, 0.0, 0.0);
-	const auto p_right = Vector4d(x_min + 1.0, y_min, 0.0, 0.0);
-	const auto p_down  = Vector4d(x_min, y_min + 1.0, 0.0, 0.0);
+	const auto p       = Vector4{x_min,       y_min, 0.0, 0.0};
+	const auto p_right = Vector4{x_min + 1.0, y_min, 0.0, 0.0};
+    const auto p_down  = Vector4{x_min, y_min + 1.0, 0.0, 0.0};
 
 	const auto w0_row = barycentric(v1, v2, p);
 	const auto w1_row = barycentric(v2, v0, p);
@@ -54,8 +72,6 @@ void renderTriangleTemplate(
 	const auto w2_dy = barycentric(v0, v1, p_down)  - barycentric(v0, v1, p);
 
 	const auto c = 1.0 / barycentric(v0, v1, v2);
-
-	//using Vertex = typename Eigen::Matrix<T, VERTEX_SIZE, 1>;
 
 	const Vertex vertex_row = c * (w0_row * vertex0 + w1_row * vertex1 + w2_row * vertex2);
 	const Vertex vertex_dx  = c * (w0_dx  * vertex0 + w1_dx  * vertex1 + w2_dx  * vertex2);
