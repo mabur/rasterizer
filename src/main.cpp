@@ -14,8 +14,8 @@ int main(int, char**)
     const auto window_title = "Rasterizer";
     const auto width = 800;// 640;
     const auto height = 600;// 360;
-    //const auto filepath = "../../models/kapell_2017.obj";
-    const auto filepath = "../../models/sibenik/sibenik.obj";
+    //const auto filepath = "../../../models/kapell_2017.obj";
+    const auto filepath = "../../../models/sibenik/sibenik.obj";
 
     auto positions_world = Vectors4d{};
     auto positions_texture = Vectors2d{};
