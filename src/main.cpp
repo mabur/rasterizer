@@ -1,3 +1,4 @@
+#define SDL_MAIN_HANDLED
 
 #include "algorithm.hpp"
 #include "camera.hpp"

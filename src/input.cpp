@@ -1,4 +1,4 @@
-#include "SDL.h"
+#include <SDL2/SDL.h>
 
 #include "input.hpp"
 #include "vector_space.hpp"

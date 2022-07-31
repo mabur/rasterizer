@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include "SDL.h"
+#include <SDL2/SDL.h>
 
 void printError(const char* context);
 bool noQuitMessage();

@@ -1,5 +1,3 @@
-#pragma once
-
 #include "sdl_wrappers.hpp"
 
 #include <algorithm>
@@ -7,7 +5,7 @@
 #include <vector>
 
 #include "algorithm.hpp"
-#include "SDL.h"
+#include <SDL2/SDL.h>
 
 void printError(const char* context)
 {
